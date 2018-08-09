@@ -1,14 +1,11 @@
 package io.smallrye.opentracing.arquillian;
 
+import io.opentracing.contrib.tracerresolver.TracerResolver;
+import io.opentracing.mock.MockTracer;
 import io.smallrye.opentracing.ExceptionMapper;
-import io.smallrye.opentracing.OpenTracingCDIExtension;
+import io.smallrye.opentracing.MockTracerResolver;
 import io.smallrye.opentracing.ResteasyClientTracingRegistrarProvider;
-import io.smallrye.opentracing.TracerProducer;
-import io.smallrye.opentracing.ServletContextTracingInstaller;
-import java.io.File;
-import javax.enterprise.inject.spi.Extension;
-import javax.servlet.ServletContainerInitializer;
-import javax.ws.rs.ext.Providers;
+import org.eclipse.microprofile.opentracing.ClientTracingRegistrar;
 import org.eclipse.microprofile.opentracing.ClientTracingRegistrarProvider;
 import org.jboss.arquillian.container.test.spi.client.deployment.ApplicationArchiveProcessor;
 import org.jboss.arquillian.test.spi.TestClass;
@@ -16,8 +13,8 @@ import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.jboss.shrinkwrap.resolver.api.maven.Maven;
-import org.jboss.weld.environment.deployment.discovery.BeanArchiveHandler;
+
+import javax.ws.rs.ext.Providers;
 
 /**
  * @author Pavol Loffay
@@ -28,43 +25,21 @@ public class DeploymentProcessor implements ApplicationArchiveProcessor {
   public void process(Archive<?> archive, TestClass testClass) {
     if (archive instanceof WebArchive) {
       JavaArchive extensionsJar = ShrinkWrap.create(JavaArchive.class,"extension.jar");
-      extensionsJar.addAsServiceProvider(Providers.class, ExceptionMapper.class);
-      extensionsJar.addClass(ExceptionMapper.class);
-      extensionsJar.addAsServiceProvider(ClientTracingRegistrarProvider.class, ResteasyClientTracingRegistrarProvider.class);
-      extensionsJar.addClasses(ResteasyClientTracingRegistrarProvider.class);
-      extensionsJar.addPackages(true, "io.opentracing");
 
-      // install CDI extensions
-      extensionsJar.addAsServiceProvider(Extension.class, OpenTracingCDIExtension.class);
-      extensionsJar.addClasses(TracerProducer.class);
-      extensionsJar.addClasses(OpenTracingCDIExtension.class);
+      extensionsJar.addClass(ExceptionMapper.class);
+      extensionsJar.addAsServiceProvider(Providers.class, ExceptionMapper.class);
+
+      extensionsJar.addClass(ResteasyClientTracingRegistrarProvider.class);
+      extensionsJar.addClass(ClientTracingRegistrarProvider.class);
+      extensionsJar.addClass(ClientTracingRegistrar.class);
+      extensionsJar.addAsServiceProvider(ClientTracingRegistrarProvider.class, ResteasyClientTracingRegistrarProvider.class);
+
+      extensionsJar.addClasses(MockTracerResolver.class);
+      extensionsJar.addPackage(MockTracer.class.getPackage());
+      extensionsJar.addAsServiceProvider(TracerResolver.class, MockTracerResolver.class);
 
       WebArchive war = WebArchive.class.cast(archive);
       war.addAsLibraries(extensionsJar);
-
-      // install tracing filters
-      war.addClass(ServletContextTracingInstaller.class);
-
-      // Workaround for RESTEASY-1922
-      war.addClass(FixedResteasyServletInitializer.class);
-      war.addAsServiceProvider(ServletContainerInitializer.class, FixedResteasyServletInitializer.class);
-      war.addClass(SmallRyeBeanArchiveHandler.class);
-      war.addAsServiceProvider(BeanArchiveHandler.class, SmallRyeBeanArchiveHandler.class);
-
-      String[] deps = {
-          "io.smallrye:smallrye-opentracing",
-          "org.jboss.resteasy:resteasy-cdi",
-          "org.jboss.resteasy:resteasy-jaxb-provider",
-          "org.eclipse.microprofile.opentracing:microprofile-opentracing-tck",
-          "org.jboss.weld.servlet:weld-servlet-core"
-      };
-      File[] dependencies = Maven.resolver()
-          .loadPomFromFile(new File("pom.xml"))
-          .resolve(deps)
-          .withTransitivity()
-          .asFile();
-      war.addAsLibraries(dependencies);
-      System.out.println(war.toString(true));
     }
   }
 }

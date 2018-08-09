@@ -25,11 +25,12 @@
   <properties>
     <version.microprofile.opentracing>1.1</version.microprofile.opentracing>
     <version.opentracing>0.31.0</version.opentracing>
+    <version.opentracing.tracerresolver>0.1.4</version.opentracing.tracerresolver>
     <verion.opentracing.jaxrs>0.1.6</verion.opentracing.jaxrs>
     <version.javax.ws.rs-api>2.0</version.javax.ws.rs-api>
     <version.resteasy>3.0.24.Final</version.resteasy>
     <version.weld>2.4.7.Final</version.weld>
-    <version.wildfly>13.0.0.Final</version.wildfly>
+    <version.wildfly>14.0.0.Beta2-SNAPSHOT</version.wildfly>
     <version.arquillian>1.4.0.Final</version.arquillian>
     <version.arquillian.wildfly>2.1.0.Final</version.arquillian.wildfly>
   </properties>
@@ -66,6 +67,11 @@
         <groupId>io.opentracing</groupId>
         <artifactId>opentracing-mock</artifactId>
         <version>${version.opentracing}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.opentracing.contrib</groupId>
+        <artifactId>opentracing-tracerresolver</artifactId>
+        <version>${version.opentracing.tracerresolver}</version>
       </dependency>
 
       <dependency>
